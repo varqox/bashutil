@@ -15,12 +15,6 @@ fi
     unset -f bashutil_error
     exit 1
 }
-# TODO: this may be not needed if we want to load more features conditionally
-readonly bashutil='' 2> /dev/null || {
-    bashutil_error "bashutil is already sourced"
-    unset -f bashutil_error
-    return 1
-}
 
 bashutil_declare_logs() {
     log_debug() {
