@@ -66,8 +66,10 @@ bashutil_declare_progress_bar() {
     local reinit='
         if [[ -t 2 ]]; then
             # Scrolling region smaller than 2 lines does not work...
-            if IFS=" " read -r bashutil_lines bashutil_columns < <(stty size <&2 2> /dev/null) && (( bashutil_lines > 2 )); then
-                printf "\x1b7\x1b[r\x1b8\v\x1b[A\x1b7\x1b[%d;H\x1b[0m\x1b[2K\x1b[?7l%s\x1b[?7h\x1b[;%dr\x1b8" ${bashutil_lines} "${bashutil_progress_bar_msg-}" $((bashutil_lines - 1)) >&2
+            _bashutil_lines=0
+            _bashutil_columns=0
+            if IFS=" " read -r _bashutil_lines _bashutil_columns < <(stty size <&2 2> /dev/null) && (( _bashutil_lines > 2 )); then
+                printf "\x1b7\x1b[r\x1b8\v\x1b[A\x1b7\x1b[%d;H\x1b[0m\x1b[2K\x1b[?7l%s\x1b[?7h\x1b[;%dr\x1b8" ${_bashutil_lines} "${bashutil_progress_bar_msg-}" $((_bashutil_lines - 1)) >&2
                 #       ^^^^^ Save state (cursor position, colors, origin mode)
                 #            ^^^^^^ Reset scrolling region to full screen
                 #                  ^^^^^ Restore state (cursor position, colors, origin mode)
@@ -96,8 +98,8 @@ bashutil_declare_progress_bar() {
     trap '
         declare -i bashutil_rc=$?
         trap - WINCH
-        if [[ -t 2 ]] && (( bashutil_lines > 2 )); then
-            printf "\x1b7\x1b[r\x1b[%d;H\x1b[2K\x1b8" ${bashutil_lines} >&2
+        if [[ -t 2 ]] && (( _bashutil_lines > 2 )); then
+            printf "\x1b7\x1b[r\x1b[%d;H\x1b[2K\x1b8" ${_bashutil_lines} >&2
             #       ^^^^^ Save state (cursor position, colors, origin mode)
             #            ^^^^^^ Reset scrolling region to full screen
             #                  ^^^^^^^^^ Go to the beginning of the bottom line
@@ -108,8 +110,8 @@ bashutil_declare_progress_bar() {
 
     function progress() {
         bashutil_progress_bar_msg="$*"
-        if [[ -t 2 ]] && (( bashutil_lines > 2 )); then
-            printf "\x1b7\x1b[r\x1b[%d;H\x1b[0m\x1b[2K\x1b[?7l%s\x1b[?7h\x1b[;%dr\x1b8" ${bashutil_lines} "${bashutil_progress_bar_msg-}" $((bashutil_lines - 1)) >&2
+        if [[ -t 2 ]] && (( _bashutil_lines > 2 )); then
+            printf "\x1b7\x1b[r\x1b[%d;H\x1b[0m\x1b[2K\x1b[?7l%s\x1b[?7h\x1b[;%dr\x1b8" ${_bashutil_lines} "${bashutil_progress_bar_msg-}" $((_bashutil_lines - 1)) >&2
             #       ^^^^^ Save state (cursor position, colors, origin mode)
             #            ^^^^^^ Reset scrolling region to full screen
             #                  ^^^^^^^^^ Go to the beginning of the bottom line
