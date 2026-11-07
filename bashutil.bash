@@ -72,7 +72,7 @@ bashutil_declare_progress_bar() {
             # occupied terminal cells is too hard and would require handling Unicode etc.
             # Sacrificing overwritten last cell in the progress line for simplicity is a good trade-off.
             if IFS=" " read -r _bashutil_lines _bashutil_columns < <(stty size <&2 2> /dev/null) && (( _bashutil_lines > 2 )); then
-                printf "\x1b7\x1b[r\x1b8\v\x1b[A\x1b7\x1b[%d;H\x1b[0m\x1b[2K\x1b[?7l%s\x1b[?7h\x1b[;%dr\x1b8" ${_bashutil_lines} "${bashutil_progress_bar_msg-}" $((_bashutil_lines - 1)) >&2
+                builtin printf "\x1b7\x1b[r\x1b8\v\x1b[A\x1b7\x1b[%d;H\x1b[0m\x1b[2K\x1b[?7l%s\x1b[?7h\x1b[;%dr\x1b8" ${_bashutil_lines} "${bashutil_progress_bar_msg-}" $((_bashutil_lines - 1)) >&2
                 #       ^^^^^ Save state (cursor position, colors, origin mode)
                 #            ^^^^^^ Reset scrolling region to full screen
                 #                  ^^^^^ Restore state (cursor position, colors, origin mode)
@@ -102,7 +102,7 @@ bashutil_declare_progress_bar() {
         declare -i bashutil_rc=$?
         trap - WINCH
         if [[ -t 2 ]] && (( _bashutil_lines > 2 )); then
-            printf "\x1b7\x1b[r\x1b[%d;H\x1b[2K\x1b8" ${_bashutil_lines} >&2
+            builtin printf "\x1b7\x1b[r\x1b[%d;H\x1b[2K\x1b8" ${_bashutil_lines} >&2
             #       ^^^^^ Save state (cursor position, colors, origin mode)
             #            ^^^^^^ Reset scrolling region to full screen
             #                  ^^^^^^^^^ Go to the beginning of the bottom line
@@ -114,7 +114,7 @@ bashutil_declare_progress_bar() {
     function progress() {
         bashutil_progress_bar_msg="$*"
         if [[ -t 2 ]] && (( _bashutil_lines > 2 )); then
-            printf "\x1b7\x1b[r\x1b[%d;H\x1b[0m\x1b[2K\x1b[?7l%s\x1b[?7h\x1b[;%dr\x1b8" ${_bashutil_lines} "${bashutil_progress_bar_msg-}" $((_bashutil_lines - 1)) >&2
+            builtin printf "\x1b7\x1b[r\x1b[%d;H\x1b[0m\x1b[2K\x1b[?7l%s\x1b[?7h\x1b[;%dr\x1b8" ${_bashutil_lines} "${bashutil_progress_bar_msg-}" $((_bashutil_lines - 1)) >&2
             #       ^^^^^ Save state (cursor position, colors, origin mode)
             #            ^^^^^^ Reset scrolling region to full screen
             #                  ^^^^^^^^^ Go to the beginning of the bottom line
