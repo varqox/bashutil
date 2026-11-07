@@ -72,7 +72,7 @@ bashutil_declare_progress_bar() {
             # occupied terminal cells is too hard and would require handling Unicode etc.
             # Sacrificing overwritten last cell in the progress line for simplicity is a good trade-off.
             if IFS=" " read -r _bashutil_lines _bashutil_columns < <(stty size <&2 2> /dev/null) && (( _bashutil_lines > 2 )); then
-                builtin printf "\x1b7\x1b[r\x1b8\v\x1b[A\x1b7\x1b[%d;H\x1b[0m\x1b[2K\x1b[?7l%s\x1b[?7h\x1b[;%dr\x1b8" ${_bashutil_lines} "${bashutil_progress_bar_msg-}" $((_bashutil_lines - 1)) >&2
+                builtin printf "\x1b7\x1b[r\x1b8\v\x1b[A\x1b7\x1b[%d;H\x1b[0m\x1b[2K\x1b[?7l%s\x1b[?7h\x1b[;%dr\x1b8" ${_bashutil_lines} "${_bashutil_progress_bar_msg-}" $((_bashutil_lines - 1)) >&2
                 #       ^^^^^ Save state (cursor position, colors, origin mode)
                 #            ^^^^^^ Reset scrolling region to full screen
                 #                  ^^^^^ Restore state (cursor position, colors, origin mode)
@@ -90,17 +90,21 @@ bashutil_declare_progress_bar() {
     '
 
     # Restore progress bar on the terminal's size change
-    local previous_winch_trap="$(trap -p WINCH)"
+    local previous_winch_trap="$(trap -p WINCH)" # empty when no trap was set
     previous_winch_trap="${previous_winch_trap#trap -- }"
-    previous_winch_trap="${previous_winch_trap% SIGWINCH}"
-    trap "${reinit}${previous_winch_trap:+eval }${previous_winch_trap}" WINCH
+    eval $'_bashutil_progress_bar_on_sigwinch() {
+        local -i rc=$?
+        '"${reinit}"$'
+        return ${rc}
+    }
+    trap -- \'${_bashutil_progress_bar_on_sigwinch+_bashutil_progress_bar_on_sigwinch;}\''"${previous_winch_trap% SIGWINCH} SIGWINCH"
+
     # Reset on exit
-    local previous_exit_trap="$(trap -p EXIT)"
+    local previous_exit_trap="$(trap -p EXIT)" # empty when no trap was set
     previous_exit_trap="${previous_exit_trap#trap -- }"
-    previous_exit_trap="${previous_exit_trap% EXIT}"
-    trap '
-        declare -i bashutil_rc=$?
-        trap - WINCH
+    _bashutil_progress_bar_on_exit() {
+        local -i rc=$?
+        unset -f _bashutil_progress_bar_on_sigwinch _bashutil_progress_bar_on_exit
         if [[ -t 2 ]] && (( _bashutil_lines > 2 )); then
             builtin printf "\x1b7\x1b[r\x1b[%d;H\x1b[2K\x1b8" ${_bashutil_lines} >&2
             #       ^^^^^ Save state (cursor position, colors, origin mode)
@@ -109,12 +113,14 @@ bashutil_declare_progress_bar() {
             #                           ^^^^^^^ Erase the bottom line
             #                                  ^^^^^ Restore state (cursor position, colors, origin mode)
         fi
-    '"${previous_exit_trap:+"(exit \${bashutil_rc}); eval "}${previous_exit_trap}" EXIT
+        return $rc
+    }
+    eval $'trap -- \'${_bashutil_progress_bar_on_exit+_bashutil_progress_bar_on_exit;}\''"${previous_exit_trap% EXIT} EXIT"
 
     function progress() {
-        bashutil_progress_bar_msg="$*"
+        _bashutil_progress_bar_msg="$*"
         if [[ -t 2 ]] && (( _bashutil_lines > 2 )); then
-            builtin printf "\x1b7\x1b[r\x1b[%d;H\x1b[0m\x1b[2K\x1b[?7l%s\x1b[?7h\x1b[;%dr\x1b8" ${_bashutil_lines} "${bashutil_progress_bar_msg-}" $((_bashutil_lines - 1)) >&2
+            builtin printf "\x1b7\x1b[r\x1b[%d;H\x1b[0m\x1b[2K\x1b[?7l%s\x1b[?7h\x1b[;%dr\x1b8" ${_bashutil_lines} "${_bashutil_progress_bar_msg-}" $((_bashutil_lines - 1)) >&2
             #       ^^^^^ Save state (cursor position, colors, origin mode)
             #            ^^^^^^ Reset scrolling region to full screen
             #                  ^^^^^^^^^ Go to the beginning of the bottom line
