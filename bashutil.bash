@@ -68,6 +68,9 @@ bashutil_declare_progress_bar() {
             # Scrolling region smaller than 2 lines does not work...
             _bashutil_lines=0
             _bashutil_columns=0
+            # We use disabling auto-wrapping to keep progress message in one line - counting number of
+            # occupied terminal cells is too hard and would require handling Unicode etc.
+            # Sacrificing overwritten last cell in the progress line for simplicity is a good trade-off.
             if IFS=" " read -r _bashutil_lines _bashutil_columns < <(stty size <&2 2> /dev/null) && (( _bashutil_lines > 2 )); then
                 printf "\x1b7\x1b[r\x1b8\v\x1b[A\x1b7\x1b[%d;H\x1b[0m\x1b[2K\x1b[?7l%s\x1b[?7h\x1b[;%dr\x1b8" ${_bashutil_lines} "${bashutil_progress_bar_msg-}" $((_bashutil_lines - 1)) >&2
                 #       ^^^^^ Save state (cursor position, colors, origin mode)
